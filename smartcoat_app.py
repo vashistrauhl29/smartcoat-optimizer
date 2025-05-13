@@ -20,7 +20,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 📘 Tutorial Box
-    with st.expander("📘 How to Use This Tool (Click to expand)"):
+with st.expander("📘 How to Use This Tool (Click to expand)"):
     st.markdown(\"\"\"
     1. **Select how many chemical types** you're working with (C1, C2...).
     2. **Define changeover times** between each pair of chemicals.
