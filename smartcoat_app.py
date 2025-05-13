@@ -130,7 +130,7 @@ def build_cost_matrix(df, changeover_df):
                 changeover = changeover_df.iloc[i, j]
                 priority = df.iloc[j]["Priority"]
                 priority_weight = 4 - priority  # P1=3, P2=2, P3=1
-                cost = int((duration + changeover) / (priority_weight ** 1.5))
+                cost = int((duration + changeover) / (priority_weight ** 2.0))  # stronger emphasis
             cost_matrix[i][j] = cost
     return cost_matrix
 
@@ -246,6 +246,18 @@ if job_df is not None:
 
         if best_route:
             st.success(f"✅ Optimized Sequence Found! Total Time: {total_time} minutes")
+            # Warn if any P1 job is placed after lower priority
+            priority_map = {row['Job_ID']: row['Priority'] for _, row in job_df.iterrows()}
+            seen_lower = False
+            warning_jobs = []
+            for job in best_route:
+                if priority_map[job] > 1:
+                    seen_lower = True
+                elif priority_map[job] == 1 and seen_lower:
+                    warning_jobs.append(job)
+
+            if warning_jobs:
+                st.warning(f"⚠️ Priority 1 jobs were scheduled after lower-priority ones: {', '.join(warning_jobs)}")
             st.write("### 🔢 Optimal Job Sequence:")
             for i, job in enumerate(best_route):
                 st.write(f"{i+1}. {job}")
@@ -254,6 +266,7 @@ if job_df is not None:
             plot_gantt(job_df, best_route, changeover_matrix)
         else:
             st.error("❌ No optimal solution found. Please check your input data.")
+
 
 
 def plot_gantt(df, route, changeover_df):
