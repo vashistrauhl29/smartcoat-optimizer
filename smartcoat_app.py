@@ -166,6 +166,7 @@ def solve_job_sequence(cost_matrix, df):
 
 def solve_priority_batched_sequence(df, changeover_map):
     grouped_jobs = []
+    grouped_ids = []
     for priority in [1, 2, 3]:
         df_group = df[df['Priority'] == priority].reset_index(drop=True)
         if df_group.empty:
@@ -174,21 +175,25 @@ def solve_priority_batched_sequence(df, changeover_map):
         cost_matrix = build_cost_matrix(df_group, changeover_df)
         route, _ = solve_job_sequence(cost_matrix, df_group)
         grouped_jobs.extend(route)
-    return grouped_jobs
+        grouped_ids.extend([(job, priority) for job in route])
+    return grouped_jobs, grouped_ids
 
 def plot_gantt(df, route, changeover_df):
     job_lookup = df.set_index("Job_ID")
     start_time = 0
     gantt_data = []
     changeover_lines = []
+    priority_dividers = []
     chemicals = df["Chemical_Type"].unique()
     color_map = {chem: plt.cm.Set2(i / len(chemicals)) for i, chem in enumerate(chemicals)}
 
+    prev_priority = None
     for i in range(len(route)):
         job_id = route[i]
         job_info = job_lookup.loc[job_id]
         duration = job_info["Estimated_Time_mins"]
         chem_type = job_info["Chemical_Type"]
+        priority = job_info["Priority"]
 
         if i > 0:
             prev_job = route[i - 1]
@@ -197,16 +202,20 @@ def plot_gantt(df, route, changeover_df):
                 changeover_lines.append(start_time)
                 start_time += changeover
 
+        if prev_priority is not None and priority != prev_priority:
+            priority_dividers.append(start_time)
+        prev_priority = priority
+
         gantt_data.append({
             "Job": job_id,
             "Start": start_time,
             "Duration": duration,
             "Color": color_map[chem_type],
-            "Priority": job_info["Priority"]
+            "Priority": priority
         })
         start_time += duration
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 6)))
 
     for task in gantt_data:
         priority = task["Priority"]
@@ -230,6 +239,8 @@ def plot_gantt(df, route, changeover_df):
 
     for x in changeover_lines:
         ax.axvline(x=x, color='red', linestyle='--', linewidth=1)
+    for x in priority_dividers:
+        ax.axvline(x=x, color='black', linestyle=':', linewidth=1)
 
     legend_patches = [mpatches.Patch(color=color_map[chem], label=chem) for chem in chemicals]
     priority_legend = [
@@ -254,8 +265,26 @@ if job_df is not None:
         with st.spinner("Running optimizer..."):
             changeover_matrix = calculate_changeover_matrix(job_df, changeover_inputs)
             cost_matrix = build_cost_matrix(job_df, changeover_matrix)
-            best_route = solve_priority_batched_sequence(job_df, changeover_inputs)
-            total_time = None  # Can't calculate total_time without sequencing through full cost matrix again
+            mode_strict = st.checkbox("Enforce strict priority ordering", value=True)
+            if mode_strict:
+                best_route, grouped_ids = solve_priority_batched_sequence(job_df, changeover_inputs)
+            else:
+                changeover_matrix = calculate_changeover_matrix(job_df, changeover_inputs)
+                cost_matrix = build_cost_matrix(job_df, changeover_matrix)
+                best_route, _ = solve_job_sequence(cost_matrix, job_df)
+                grouped_ids = [(job, job_df[job_df['Job_ID'] == job]['Priority'].values[0]) for job in best_route]
+
+            # Recalculate total time for combined route
+            full_changeover_df = calculate_changeover_matrix(job_df, changeover_inputs)
+            job_lookup = job_df.set_index("Job_ID")
+            start_time = 0
+            total_time = 0
+            for i, (job, _) in enumerate(grouped_ids):
+                if i > 0:
+                    prev_job = grouped_ids[i-1][0]
+                    start_time += full_changeover_df.loc[prev_job, job]
+                total_time = start_time + job_lookup.loc[job]['Estimated_Time_mins']
+                start_time = total_time  # Can't calculate total_time without sequencing through full cost matrix again
 
         if best_route:
             st.success(f"✅ Optimized Sequence Found! Total Time: {total_time} minutes")
@@ -279,7 +308,6 @@ if job_df is not None:
             plot_gantt(job_df, best_route, changeover_matrix)
         else:
             st.error("❌ No optimal solution found. Please check your input data.")
-
 
 def plot_gantt(df, route, changeover_df):
     job_lookup = df.set_index("Job_ID")
