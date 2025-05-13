@@ -177,6 +177,81 @@ if job_df is not None:
             st.write("### 🔢 Optimal Job Sequence:")
             for i, job in enumerate(best_route):
                 st.write(f"{i+1}. {job}")
-            # You can add the Gantt chart plotting here if needed
+
+            # Show Gantt chart
+            st.write("### 📊 Gantt Chart:")
+            plot_gantt(job_df, best_route, changeover_matrix)
+
         else:
             st.error("❌ No optimal solution found. Please check your input data.")
+def plot_gantt(df, route, changeover_df):
+    job_lookup = df.set_index("Job_ID")
+    start_time = 0
+    gantt_data = []
+    changeover_lines = []
+    chemicals = df["Chemical_Type"].unique()
+    color_map = {chem: plt.cm.Set2(i / len(chemicals)) for i, chem in enumerate(chemicals)}
+
+    for i in range(len(route)):
+        job_id = route[i]
+        job_info = job_lookup.loc[job_id]
+        duration = job_info["Estimated_Time_mins"]
+        chem_type = job_info["Chemical_Type"]
+
+        if i > 0:
+            prev_job = route[i - 1]
+            changeover = changeover_df.loc[prev_job, job_id]
+            if changeover > 0:
+                changeover_lines.append(start_time)
+                start_time += changeover
+
+        gantt_data.append({
+            "Job": job_id,
+            "Start": start_time,
+            "Duration": duration,
+            "Color": color_map[chem_type],
+            "Priority": job_info["Priority"]
+        })
+        start_time += duration
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    for task in gantt_data:
+        priority = task["Priority"]
+        edge_color = {1: "red", 2: "orange", 3: "gray"}.get(priority, "black")
+
+        ax.barh(
+            y=task["Job"],
+            width=task["Duration"],
+            left=task["Start"],
+            height=0.6,
+            color=task["Color"],
+            edgecolor=edge_color,
+            linewidth=2
+        )
+        ax.text(
+            task["Start"] + task["Duration"] / 2,
+            task["Job"],
+            f'{task["Duration"]} min\\n(P{priority})',
+            ha='center', va='center', fontsize=8
+        )
+
+    for x in changeover_lines:
+        ax.axvline(x=x, color='red', linestyle='--', linewidth=1)
+
+    legend_patches = [mpatches.Patch(color=color_map[chem], label=chem) for chem in chemicals]
+    priority_legend = [
+        mpatches.Patch(facecolor='white', edgecolor='red', label='Priority 1', linewidth=2),
+        mpatches.Patch(facecolor='white', edgecolor='orange', label='Priority 2', linewidth=2),
+        mpatches.Patch(facecolor='white', edgecolor='gray', label='Priority 3', linewidth=2),
+    ]
+    ax.legend(handles=legend_patches + priority_legend, title="Legend", bbox_to_anchor=(1.05, 1), loc='upper left')
+
+    ax.set_xlabel("Time (min)")
+    ax.set_title("🧪 Optimized Coating Job Sequence")
+    plt.tight_layout()
+
+    buf = BytesIO()
+    fig.savefig(buf, format="png")
+    st.image(buf.getvalue())
+    st.download_button("📥 Download Gantt Chart (PNG)", buf, file_name="SmartCoat_GanttChart.png", mime="image/png")
