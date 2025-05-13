@@ -21,17 +21,18 @@ st.markdown("""
 
 # 📘 Tutorial Box
 with st.expander("📘 How to Use This Tool (Click to expand)"):
-    st.markdown(\"\"\"
+    st.markdown("""
     1. **Select how many chemical types** you're working with (C1, C2...).
     2. **Define changeover times** between each pair of chemicals.
     3. Choose between:
-        - ✅ **Manual entry** (add each job one by one), or
+        - ✅ **Manual entry** (add each job one by one), or  
         - 📄 **Upload a CSV** with job details
     4. Click **🚀 Optimize Schedule** to run the optimization.
     5. View the **Gantt chart**, and download the:
         - 📊 Optimized PNG chart
         - 📋 Job sequence as CSV
-    \"\"\")
+    """)
+
 
 st.markdown("Define your **chemical changeover times** and **manually add coating jobs** or **upload CSV** to optimize scheduling.")
 
