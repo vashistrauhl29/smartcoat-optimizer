@@ -130,7 +130,7 @@ def build_cost_matrix(df, changeover_df):
                 changeover = changeover_df.iloc[i, j]
                 priority = df.iloc[j]["Priority"]
                 priority_weight = 4 - priority  # P1=3, P2=2, P3=1
-                cost = int((duration + changeover) / priority_weight)
+                cost = int((duration + changeover) / (priority_weight ** 1.5))
             cost_matrix[i][j] = cost
     return cost_matrix
 
@@ -254,6 +254,7 @@ if job_df is not None:
             plot_gantt(job_df, best_route, changeover_matrix)
         else:
             st.error("❌ No optimal solution found. Please check your input data.")
+
 
 def plot_gantt(df, route, changeover_df):
     job_lookup = df.set_index("Job_ID")
