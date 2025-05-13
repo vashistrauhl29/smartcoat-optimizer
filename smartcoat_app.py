@@ -164,6 +164,18 @@ def solve_job_sequence(cost_matrix, df):
     else:
         return None, None
 
+def solve_priority_batched_sequence(df, changeover_map):
+    grouped_jobs = []
+    for priority in [1, 2, 3]:
+        df_group = df[df['Priority'] == priority].reset_index(drop=True)
+        if df_group.empty:
+            continue
+        changeover_df = calculate_changeover_matrix(df_group, changeover_map)
+        cost_matrix = build_cost_matrix(df_group, changeover_df)
+        route, _ = solve_job_sequence(cost_matrix, df_group)
+        grouped_jobs.extend(route)
+    return grouped_jobs
+
 def plot_gantt(df, route, changeover_df):
     job_lookup = df.set_index("Job_ID")
     start_time = 0
@@ -242,7 +254,8 @@ if job_df is not None:
         with st.spinner("Running optimizer..."):
             changeover_matrix = calculate_changeover_matrix(job_df, changeover_inputs)
             cost_matrix = build_cost_matrix(job_df, changeover_matrix)
-            best_route, total_time = solve_job_sequence(cost_matrix, job_df)
+            best_route = solve_priority_batched_sequence(job_df, changeover_inputs)
+            total_time = None  # Can't calculate total_time without sequencing through full cost matrix again
 
         if best_route:
             st.success(f"✅ Optimized Sequence Found! Total Time: {total_time} minutes")
@@ -266,7 +279,6 @@ if job_df is not None:
             plot_gantt(job_df, best_route, changeover_matrix)
         else:
             st.error("❌ No optimal solution found. Please check your input data.")
-
 
 
 def plot_gantt(df, route, changeover_df):
