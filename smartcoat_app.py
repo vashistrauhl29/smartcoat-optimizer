@@ -8,6 +8,7 @@ from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 # ---------------------- UI Setup ----------------------
 st.set_page_config(page_title="SmartCoat Optimizer", layout="wide")
 st.title("🧪 SmartCoat Optimizer Tool")
+
 # 🎉 Welcome Box
 st.markdown("""
 <div style='background-color:#f0f2f6;padding:15px;border-radius:10px'>
@@ -32,7 +33,6 @@ with st.expander("📘 How to Use This Tool (Click to expand)"):
         - 📊 Optimized PNG chart
         - 📋 Job sequence as CSV
     """)
-
 
 st.markdown("Define your **chemical changeover times** and **manually add coating jobs** or **upload CSV** to optimize scheduling.")
 
@@ -95,11 +95,11 @@ if manual_mode:
             "Estimated_Time_mins": duration
         })
 
-    if st.session_state.manual_jobs:
-        job_df = pd.DataFrame(st.session_state.manual_jobs)
-        st.success("✅ Job list built!")
-        st.dataframe(job_df)
-else:
+if manual_mode and st.session_state.manual_jobs:
+    job_df = pd.DataFrame(st.session_state.manual_jobs)
+    st.success("✅ Job list built!")
+    st.dataframe(job_df)
+elif not manual_mode:
     uploaded_file = st.file_uploader("Upload your job list", type="csv")
     if uploaded_file:
         job_df = pd.read_csv(uploaded_file)
@@ -164,4 +164,19 @@ def solve_job_sequence(cost_matrix, df):
     else:
         return None, None
 
-# [Rest of the code remains unchanged]
+# ---------------------- Run Optimizer ----------------------
+if job_df is not None:
+    if st.button("🚀 Optimize Schedule"):
+        with st.spinner("Running optimizer..."):
+            changeover_matrix = calculate_changeover_matrix(job_df, changeover_inputs)
+            cost_matrix = build_cost_matrix(job_df, changeover_matrix)
+            best_route, total_time = solve_job_sequence(cost_matrix, job_df)
+
+        if best_route:
+            st.success(f"✅ Optimized Sequence Found! Total Time: {total_time} minutes")
+            st.write("### 🔢 Optimal Job Sequence:")
+            for i, job in enumerate(best_route):
+                st.write(f"{i+1}. {job}")
+            # You can add the Gantt chart plotting here if needed
+        else:
+            st.error("❌ No optimal solution found. Please check your input data.")
