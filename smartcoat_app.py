@@ -215,7 +215,7 @@ def plot_gantt(df, route, changeover_df):
         })
         start_time += duration
 
-    fig, ax = plt.subplots(figsize=(10, 6)))
+    fig, ax = plt.subplots(figsize=(10, 6))
 
     for task in gantt_data:
         priority = task["Priority"]
@@ -308,6 +308,7 @@ if job_df is not None:
             plot_gantt(job_df, best_route, changeover_matrix)
         else:
             st.error("❌ No optimal solution found. Please check your input data.")
+
 
 def plot_gantt(df, route, changeover_df):
     job_lookup = df.set_index("Job_ID")
