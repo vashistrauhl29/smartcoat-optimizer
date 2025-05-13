@@ -8,6 +8,31 @@ from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 # ---------------------- UI Setup ----------------------
 st.set_page_config(page_title="SmartCoat Optimizer", layout="wide")
 st.title("🧪 SmartCoat Optimizer Tool")
+# 🎉 Welcome Box
+st.markdown("""
+<div style='background-color:#f0f2f6;padding:15px;border-radius:10px'>
+    <h3 style='color:#0e1117'>Welcome to the SmartCoat Optimizer 👋</h3>
+    <p style='color:#31333f;font-size:16px'>
+        This tool helps you sequence coating jobs efficiently by minimizing changeovers and prioritizing urgent tasks. 
+        You can manually enter jobs or upload a CSV, define your coating chemical types, and generate an optimized Gantt schedule — all in one place!
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+# 📘 Tutorial Box
+with st.expander("📘 How to Use This Tool (Click to expand)"):
+    st.markdown(\"\"\"
+    1. **Select how many chemical types** you're working with (C1, C2...).
+    2. **Define changeover times** between each pair of chemicals.
+    3. Choose between:
+        - ✅ **Manual entry** (add each job one by one), or
+        - 📄 **Upload a CSV** with job details
+    4. Click **🚀 Optimize Schedule** to run the optimization.
+    5. View the **Gantt chart**, and download the:
+        - 📊 Optimized PNG chart
+        - 📋 Job sequence as CSV
+    \"\"\")
+
 st.markdown("Define your **chemical changeover times** and **manually add coating jobs** or **upload CSV** to optimize scheduling.")
 
 # ---------------------- Chemical Type Setup ----------------------
